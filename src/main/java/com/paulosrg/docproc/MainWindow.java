@@ -8,6 +8,7 @@ package com.paulosrg.docproc;
 import java.io.File;
 import java.io.FilenameFilter;
 import javax.swing.DefaultListModel;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 /**
  *
@@ -37,6 +38,9 @@ public class MainWindow extends javax.swing.JFrame {
         jMenuItem1 = new javax.swing.JMenuItem();
 
         pdfFolderChooser.setFileSelectionMode(javax.swing.JFileChooser.DIRECTORIES_ONLY);
+
+        dictionaryChooser.setFileFilter(new FileNameExtensionFilter("JSON Files", "json")
+        );
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
