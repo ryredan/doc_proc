@@ -7,6 +7,12 @@ package com.paulosrg.docproc;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Properties;
 import javax.swing.DefaultListModel;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
@@ -172,9 +178,7 @@ public class MainWindow extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_jMenuItem1ActionPerformed
 
-    /**
-     * @param args the command line arguments
-     */
+
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
@@ -206,6 +210,7 @@ public class MainWindow extends javax.swing.JFrame {
             }
         });
     }
+
     private DocumentIdentificator docIde = new DocumentIdentificator();
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JFileChooser dictionaryChooser;
