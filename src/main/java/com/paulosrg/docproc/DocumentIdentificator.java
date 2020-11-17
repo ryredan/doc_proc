@@ -5,27 +5,16 @@
  */
 package com.paulosrg.docproc;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
@@ -34,56 +23,39 @@ import org.apache.pdfbox.text.PDFTextStripper;
  * @author User
  */
 public class DocumentIdentificator {
-    
-    private HashMap<String, Set> dictionaries;
-    
+        
     public DocumentIdentificator(){
-        dictionaries = new HashMap<>();
+        
     }
     
-    public DocumentIdentificator(File dictionary) {
-        try {
-            this.loadDictionary(dictionary);
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(DocumentIdentificator.class.getName()).log(Level.SEVERE, null, ex);
-        }
-    }
-    
-    public Object[] checkDocumentType(File file) throws IOException{
-        PDDocument doc = PDDocument.load(file);
+    public String checkDocumentType(File f, Connection c) throws IOException, SQLException{
+        PDDocument doc = PDDocument.load(f);
         PDFTextStripper textStripper = new PDFTextStripper();
         String[] extractedText = textStripper.getText(doc).split("[^\\p{L}\\p{Nd}]+");
-        Set<String> docSet = new HashSet<>(Arrays.asList(extractedText));
-        //HashMap<String, Float> results = new HashMap<>();
-        String tipoDeDocumento = "";
-        float porcentagem = 0;
-        for(Iterator<Map.Entry<String, Set>> it = dictionaries.entrySet().iterator(); it.hasNext(); ){
-            Map.Entry<String, Set> current = it.next();
-            Set<String> currentType = (Set<String>)((HashSet)current.getValue()).clone();
-            currentType.retainAll(docSet);
-            float pc = (currentType.size()/(float)current.getValue().size())*100;
-            if(pc > porcentagem){
-                porcentagem = pc;
-                tipoDeDocumento = current.getKey();
+        Set<String> foundTextOnDocument = new HashSet<>(Arrays.asList(extractedText));
+        Set<String> dictionary = new HashSet<>();
+        PreparedStatement ps = c.prepareStatement("SELECT palavra, valor_propriedade_id FROM dicionario_propriedade");
+        ResultSet rs = ps.executeQuery();
+        float highestPercentage = 0;
+        int id = 0;
+        
+        while(rs.next()){
+            Array words = rs.getArray("palavra");
+            dictionary.addAll(Arrays.asList((String[])words.getArray()));
+            int dictCount = dictionary.size();
+            dictionary.retainAll(foundTextOnDocument);
+            float currentPercentage = dictionary.size() / (float) dictCount;
+            if(currentPercentage >= highestPercentage){
+                highestPercentage = currentPercentage;
+                id = rs.getInt("valor_propriedade_id");
             }
         }
-
         doc.close();
-        //return results.toString();
-        return new Object[]{tipoDeDocumento, porcentagem};
+        ps = c.prepareStatement("SELECT valor FROM valor_lista_propriedade WHERE id = ?");
+        ps.setInt(1, id);
+        rs = ps.executeQuery();
+        rs.next();
+        String result = f.getName() + ": " + rs.getString("valor") + ": " + highestPercentage;
+        return result;
     }
-    
-    public void loadDictionary(File jsonfile) throws FileNotFoundException{
-        JsonObject jsobj = new Gson().fromJson(new InputStreamReader(new FileInputStream(jsonfile), Charset.forName("UTF-8")), JsonObject.class);
-        dictionaries = new HashMap<>();
-        for (Entry<String, JsonElement> nextElement : jsobj.entrySet()) {
-            String docName = nextElement.getKey();
-            ArrayList<String> values = new ArrayList<>();
-            for (JsonElement nextValue : nextElement.getValue().getAsJsonArray()) {
-                values.add(nextValue.getAsString());
-            }
-            dictionaries.put(docName, new HashSet<>(values));
-        }
-    }
-    
 }
